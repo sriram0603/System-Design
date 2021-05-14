@@ -1,0 +1,23 @@
+Points to remember:
+user enter: we give him a ticket and on exit we generate price.
+what details shoud be in the ticket?
+allocation of parking to the user - diff types of parking. how is parking spot decided?
+
+scale?
+calculate data for each ticket to be saved in 10 years.
+
+Step 1:
+collect the requiremenmts
+1) customer should check for availability from the board,and enters from multiple entrances, 
+and exits from multiple exits.
+2) when enters he should be able to collect the ticket for the free spot from the 
+automated system and when exits the machine should generate the ticket price.
+3) this ticket contains the availability of free spot, vehicle registration number,
+arrival time.
+4) when the vehicle enters, the automated system will update the parking spots 
+availability status, and the customer will park in the space allocated.
+5) now when the customer will exit, he should be able to scan the ticket and
+based on the hourly charges, the arrival and leaving time of the vehicle, price must be 
+calculated.
+6)customer makes payment and the status for the parking system will be updated.
+ 

@@ -1,0 +1,33 @@
+1. based on structure of the data, Query pattern, amount of scale need to handle
+2. whatever the database you are using you have to use caching mechanism
+3. caching is a key value process where key is like a query pattern and values is a response you need.
+4. eg : memecache, mostly use redis etc
+5. Now looking at File storage option: for eg considering amazon and netflix,
+the data we need to store will be a image or a video, if anything involves video or a image ,blog storage is used.
+6. databases are which we can query on, but blog storage just serves as it is. Eg: amazon S3
+7. along with S3 use CDN for blob
+8. for amazon, google, netflix, there should be a text searching capability. we should provide with text search engine.
+which is Elastisearch built on top of Apache lucine framework. consider edit distance in spellings.
+9. search engines are efficient at search so should not use them as primary databases, the data should be loaded from DB and search should be performed.
+10. for application metrics like cpu utilisation, and other metrics.then use Time - series database
+11. time series is an extended like RDBMS, but do not have some functionality. The time series has only append functional;ity, cannot update multiple records.
+also, do not support random queries or searches, but support based on time range. Eg : last 1hr, etc, Eg : open TSDB
+12.Analytics of data on whole transactions of a company like orders, etc. the we need data warehouse.Eg: Hadoop
+13. when there is a structured Data --> Need ACID > --> RDBMS. 
+if you want to have a payment system, where there should be consistent changes when the count is increased or decreased
+that should consistently reflect when queried again, the use RDBMS
+
+14. if you dont need a ACID properties then we can No SQL or SQL. Eg: like a user profile - name, place, birthday etc
+
+15. when no structured data is there, for eg: when we are preparing for a catalogue for Amazon, we store all the items 
+that are on the website like shirt which has attributes of shirt size, color etc. Then go for No SQL - Dicument DB - Mongo DB ,couch DB
+
+16. when you have ever increasing data like uber sending their location everyday and limited queries to apply on data. Then go for cassandra DB- not heavy, HBase
+
+17. taking some real world examples, when there is an order that cane be placed by more than 1 customer we have to
+make sure the ACIDproperties are maintained like the order  cannot be duplicated among the customers,
+also the orders are a ever increasing data so we can use a mix of MySQL and Cassandra where we can take the 
+order which are placed into MySQL and then after the order is delivered the data from the MysQL is 
+deleted and pushed into the Cassandra DB.
+Another Example: Random querying like get users who have bought sugar in last 5 days , there can be ,mnay vendors and different brands,
+then go for Document DB

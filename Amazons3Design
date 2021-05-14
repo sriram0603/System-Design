@@ -1,0 +1,77 @@
+1) what are goals of system?
+-- Availability, Durability - 99.99...% , Multitenancy, Scalable, Region specific Bukcets, SSL
+
+-- the guarantee pecentage is said based on the Markov-chain model for reliability evaluation. 
+
+lets start with a simple example, we are having a single server with a couple of API's 
+and couple of storage 20TB harddrive. as the single server has limited I/O operations
+and lot of writes on that harddisk which cause failure.
+Also if we take another server, if we upload its going to store in one server and if we
+try to read that file, the request may go to another server and not find it. for this,
+we have to seperate API from the storage. 
+Now the API server is more of CPU and RAM intense machine but a minimal harddisk.
+So when a request received into the API server, the request will go to a new middle layer
+called meta data server which is a DB, where we will have info about where the file is present
+eg: image 1 - server2. it gives info about the DB where the file is stored in key-value pairs.
+
+when the meta data server is down ? we have to scale it. when the DB's are down ?
+How are they gonna get replicated? who is gonna replicate it ?
+One option is The meta data server will take care of the DB's and see the health of these
+DB's and check if the memory is available or not, which is implied to API servers.
+The replica's of the DB's should be in different region for high availability,
+the replication from the DB to its replica should be synchronous beacuse it ensures high
+availability, but when asynchronous is used, there is chance even before syncing the data,
+the server goes down and file is lost forever. 
+
+Deep dive into the architecture of S3:
+when the user sets up a account, the cluster manager is responsible for creating the bucket 
+name (virtual hosting bucket as --> my-buckt.s3.com) and points the IP address of the whole 
+distributed storage's Load balancer IP address in DNS lookup. the cluster manager is responsible
+for 1) accounts set up 2) disaster recovery 3) authentication 4) manages cluster - like memory.
+and the auth key is copied for that account into a DB.
+
+each and every part of the distributed storage after Load balancer:
+when the user send the file, the DNS will point to the Load balancer and based on the file 
+or random, the API key is checked with the DB's account key for that account and validates
+the policies for the operations. 
+if everything is right, the API server will now point to a layered system
+Partion layer and then Stream layer.
+the partion servers are partitioned based on the range of some numbers (0-1000,1001-2000 etc),
+when the file is in the API server, the API server generates a UUID which is then hashed 
+and look for that hash number in a PARTION MAP TABLE where it has a table of range of numbers 
+for each partition server is handling.
+when a partitioned layer receives this, it is then passed to a streaming layer. Each partition
+server will have a streaming layer which is more like linked list of file servers. When the 
+streaming file server is about to finish a new file server will be added to the head of that
+streaming file server.
+
+the streaming layer responsibilities which is done by stream manager:
+1) append only fashion. - cheapest hard disc like spinning disc hard disk, they are high 
+perfomant when the data is appended.
+2) we need to seal the file servers when the data is full.
+the partition server asks the stream manager where can i write this file so that I can have 
+space, the stream amnager will look into its DB. 
+3) garbage collection - when we try to delete a file, we will find where the file is in the 
+stream manager and then delete that file but do we need to tell the stream manager about it?
+No need because the stream manager will keep eye in the sealed file servers and then try to
+free up spaces in those sealed file servrs and move them up and try to make a one free
+server out of all the empty spaces in those servers. the mappings in the stream manager
+is also changed.
+4) Replication - streaming layer's responsibility.( synchronously or asynchronously)
+ we can replicate the file locally in the same file stream, so even when the file server
+ goes down or the repliacted local copy will be present, which will copy the files into 
+ another two servers at different regions.
+5) health check of the file system.
+the schema for Stream manager when the partition server asks for which file server to write
+in a stream is - stream ID, primary server, replica 1, replica 2.
+block is group of segements. but why blocks?
+when the user writes a thousands of 1 MB files into the system, it ios hard for the 
+stream manager to maintain, so there will be a limit or a abstraction for the block size
+to be 10MB and the we can store that chunk of files in our file server.
+the stream manager is going to hold - chunk ID, offset start, offset end (In the block group
+where the file data is starting an ending)
+we can use zookeeper in the stream amnager, for which to coordinate who can be leader in the 
+manager.
+In the API server, we have to use Cache. 
+1 hit wonders
+

@@ -1,0 +1,87 @@
+features ?
+1) post as fast as possible
+2) timelines for user, home screen, and search screen based on a particular keyword we
+    used to search.
+3) trends - trending hashtags or news
+
+next try to estimate the characteristics of that particular app.
+1) reads and writes. - count per sec
+ as reads > write then it is read heavy.
+2) it can be evntual cconsistent means when a tweet happens the tweet can be delayed
+to users for 1 or 2 seconds
+3) storage
+redis can be used as a DB or a Cache system
+ -- we can use redis as it is in-memory and we can scale horizontally with clusters
+    out of it.
+ -- we cant depend on redis, so we have to use a DB.
+ -- DB schema is like a user can have many tweets and many followers.
+ -- Redis Schema (use redis list DS)- <user_id> - tweets:[1,2,3,4...] 
+    and <user_id>: [followers]
+4) User timelines
+for example when we visit a users timeline, we have to search in DB for that user and returns
+all the tweets and retweets sorted by date for that user as it is a read heavy DB, it is hard.
+so we will have to add redis as another layer where it will keep all the data for that user_id
+in redis cache. so when user posts a tweets we can also add to redis.
+5) for Home timeline:
+1) get all followers, get latest tweets, merge and display.
+2) to get the home timeline data more efficiently, we follow Fan out approach.
+    fan out - means moving to diff points from single point.
+3) for example a user has some followers, when the user tweets first the tweet is stored 
+in DB and then
+into his user timeline cache, then send out the tweet to all followers home timeline cache,
+that is cache means in redis. for each followers's home time line, store that tweet.
+So when that follower visits his home timeline, we just need to return this redis cache of 
+the home timeline in some ascending or descending format.
+4) but this kind of approach do not work for celebs as there can be many followers
+which will take a lot of time.
+5) lets also maintain celebs cache for followers, where for each follower we will have 
+a seperate celeb cache, in which each follower have all the celebs the followers follows.
+6) now when the celeb posts a tweet, it is just stored in DB and that celebs user timeline.
+7) but when the followers of that celeb open the home time line, we go to the list of all 
+the followers that user has and we check for any recent tweets of that celeb in that celeb's
+user time line cache.
+8) so we can now add all the home time line tweets of that follower and also the celebs tweets 
+if there are any into another DS and provided to the front end.
+
+What about people not logging into twitter ?
+so for those people no need to store in redis.
+
+#trends ?
+trends are calculated based on vol of tweets and the time generated for these tweets to
+generate. eg: 1000 tweets in 5 min greater than 10000 in 1 month.
+-- for this twitter uses stream processing platform. - Apache Storm or Heron or Kafka
+
+-- here is the stream processing of tweets for the trending hashtag?
+ the tweets is process through a number of operators each performing one functionality.
+ we can handle the buffer between operators with kafka topics if we use kafka streams.
+ if one operator is slow and the other operator is fast, we can actually increase the
+ scalability of that operator which is slow.
+ the tweets goes though ---> filter(filter adult/lame hashtags)---> 
+ parse(pick important words)
+ the tweets are put into kafka msg queue and these are picked by theese operators 
+ asynchronously, if the operator picking is slow we can scale them.
+ --- after parsing
+a copy of tweet is passed to geolocation purposes and to the counting hash trend.
+in the count hashing operator, based on a particular time window, we have to count the rate
+of the tweet and send it to a rank operator where the rank of each hash tag is determined.
+Another copy of that tweet from the parser is sent to location determining, and based
+on that tweet location and the rank from the count hashing trend operators, fed into redis.
+Any API can read that from redis.
+
+
+how twitter handles searching of tweets?
+twitter uses this feature called Early bird - inverted full text index.
+where all the non conjunction word from the tweet is broke and stored in the DB as index.
+so when we search for that word it takes out all the tweets having that word and displays.
+
+we have to store in distributed system, this is called scatter and gather.
+when the tweet is posted it is scattered to all the data centers or nodes and when a 
+query is made it gathers all the info from all the nodes and return that list.
+
+HTTP PUSH /web socket service to handle persistent connect for mobile connections.(million of reqs)
+use Zookeeper to coordinate the nodes in the redis as it handles a lot of data.
+zookeeper helps to maintain the configuration for each and every cluster.
+Cassandra for analytics.
+complete system design flow:
+
+look for tech dummies last 5 minute video.
